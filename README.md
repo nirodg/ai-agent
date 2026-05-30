@@ -1,5 +1,13 @@
 # 🚀 AI Sales Enrichment Agent
 
+[![Open in Streamlit](https://img.shields.io/badge/Open%20in-Streamlit-ff4b4b?logo=streamlit&logoColor=white)](https://ai-agent-h6techvkibb4yfpcwdga7e.streamlit.app/)
+
+## ✨ Live Preview
+
+![AI Sales Enrichment Agent UI](main.png)
+
+> A quick look at the Streamlit interface for research, model controls, and profile history.
+
 A fully local, AI-powered sales intelligence platform that researches companies, maps competitors, surfaces funding and hiring signals, scores outreach intent, and drafts personalised cold emails — all from a single Streamlit app.
 
 ---

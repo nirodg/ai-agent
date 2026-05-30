@@ -2570,7 +2570,7 @@ with st.sidebar:
                 st.caption("Select at least one profile.")
 
     st.divider()
-    st.caption("Made with ❤️ by Brage Dorin | MIT Licensed")
+    st.caption("Made with ❤️ by Brage Dorin | MIT Licensed | [GitHub Repo](https://github.com/nirodg/ai-agent)")
 
 
 # ---------------------------------------------------------
