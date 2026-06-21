@@ -1,0 +1,36 @@
+from .models import BACKUP_DIR, DB_PATH, get_db, init_db
+from .repository import (
+    delete_email_draft,
+    delete_note,
+    delete_profile,
+    load_all_profiles,
+    load_drafts_for_company,
+    load_notes,
+    load_setting,
+    row_to_dict,
+    save_email_draft,
+    save_intent_score,
+    save_note,
+    save_profile,
+    save_setting,
+)
+
+__all__ = [
+    "BACKUP_DIR",
+    "DB_PATH",
+    "get_db",
+    "init_db",
+    "save_profile",
+    "load_all_profiles",
+    "delete_profile",
+    "row_to_dict",
+    "save_intent_score",
+    "load_setting",
+    "save_setting",
+    "save_email_draft",
+    "load_drafts_for_company",
+    "delete_email_draft",
+    "save_note",
+    "load_notes",
+    "delete_note",
+]
