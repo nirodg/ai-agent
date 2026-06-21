@@ -186,15 +186,50 @@ Key functions are decorated with `@traceable` and tagged by feature area (`step1
 
 ```
 .
-├── main.py   # Main application
-├── requirements.txt      # Python dependencies
-├── setup.py              # First-time setup script
-├── run.sh                # Start script (macOS/Linux)
-├── run.bat               # Start script (Windows)
-├── .env                  # API keys (created by setup.py, never commit this)
-├── enrichment_profiles.db  # SQLite database (auto-created on first run)
-└── db_backups/           # Local database backups (auto-created)
+├── main.py                       # Streamlit entrypoint (page config, session state, page router)
+├── app/
+│   ├── config.py                 # Constants, persona presets, search-depth queries, badge styles
+│   ├── schemas/
+│   │   ├── evidence.py           # FieldConfidence, FundingInfo, JobSignals, TechStack
+│   │   └── profile.py            # CompanyProfile, CompetitorProfile
+│   ├── db/
+│   │   ├── models.py             # SQLite connection + init_db()
+│   │   └── repository.py         # CRUD: profiles, settings, email drafts, notes
+│   ├── llm/
+│   │   ├── settings.py           # Provider / model / persona / prompt resolution
+│   │   └── factory.py            # get_llm_client(), build_agent(), provider fallback
+│   ├── tools/
+│   │   └── web_search.py         # DuckDuckGo (ddgs) search tool with retry
+│   ├── agents/
+│   │   ├── enrichment_agent.py   # Multi-source research pipeline + structured extraction
+│   │   ├── scoring_agent.py      # Rule-based + LLM intent scoring
+│   │   ├── outreach_agent.py     # Cold email, follow-ups, LinkedIn DM, objection prep
+│   │   └── verifier_agent.py     # diff_profiles + persona follow-up
+│   ├── services/
+│   │   ├── backup.py             # DB backup / restore
+│   │   ├── export.py             # CSV / Excel / Markdown exporters
+│   │   ├── memory.py             # Cross-company memory block builder
+│   │   └── langsmith_client.py   # LangSmith stats fetcher
+│   └── ui/
+│       ├── badges.py             # Confidence + intent badges, diff renderer
+│       ├── outreach_page.py      # Email expander widget
+│       ├── profile_tabs.py       # 5-tab profile view + persona follow-up
+│       ├── profiles_page.py      # Priority dashboard
+│       ├── alerts_page.py        # Re-research / trigger alerts
+│       ├── langsmith_page.py     # LangSmith observability page
+│       ├── backup_page.py        # DB backup / restore page
+│       ├── research_page.py      # Single-chat + bulk-enrichment page
+│       └── sidebar.py            # Sidebar: nav, persona, LLM, model, history, export
+├── requirements.txt              # Python dependencies
+├── setup.py                      # First-time setup script
+├── run.sh                        # Start script (macOS/Linux)
+├── run.bat                       # Start script (Windows)
+├── .env                          # API keys (created by setup.py, never commit this)
+├── enrichment_profiles.db        # SQLite database (auto-created on first run)
+└── db_backups/                   # Local database backups (auto-created)
 ```
+
+The codebase follows a strict layered architecture: `config → schemas → db → llm → tools → agents/services → ui`. Only `app/ui/*` and `app/services/langsmith_client.py` (for `@st.cache_data`) import Streamlit; every other layer is UI-agnostic.
 
 ---
 
