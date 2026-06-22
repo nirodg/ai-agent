@@ -11,11 +11,15 @@ from app.config import (
     PERSONA_PRESETS,
 )
 from app.db import (
+    add_mcp_server,
+    delete_mcp_server,
     delete_profile,
     load_all_profiles,
+    load_mcp_servers,
     load_setting,
     row_to_dict,
     save_setting,
+    set_mcp_server_enabled,
 )
 from app.llm.factory import test_ollama_connection
 from app.llm.settings import (
@@ -54,6 +58,7 @@ def render_sidebar() -> tuple[list, list]:
         pages = [
             ("research",   "🔬 Research"),
             ("dashboard",  "🎯 Dashboard"),
+            ("knowledge",  "📚 Knowledge Base"),
             ("alerts",     "🔔 Alerts"),
             ("langsmith",  "🔭 LangSmith"),
             ("backup",     "🗄 Backup"),
@@ -310,6 +315,54 @@ def render_sidebar() -> tuple[list, list]:
             if can_save_model and final_model != current_model:
                 save_llm_model_for_provider(current_provider, final_model)
                 st.rerun()
+
+        # ── MCP SERVERS ───────────────────────────────────
+        with st.expander("🔌 MCP Servers", expanded=False):
+            st.caption(
+                "Register external MCP servers to give the agent extra tools. "
+                "Tools from enabled servers are loaded automatically."
+            )
+            servers = load_mcp_servers()
+            for srv in servers:
+                row = row_to_dict(srv) if not isinstance(srv, dict) else srv
+                c1, c2, c3 = st.columns([5, 2, 1])
+                with c1:
+                    target = row.get("command") or row.get("url") or ""
+                    st.markdown(f"**{row['name']}**  \n`{row['transport']}` · {target[:40]}")
+                with c2:
+                    enabled = bool(row.get("enabled", 1))
+                    new_enabled = st.toggle(
+                        "On", value=enabled, key=f"mcp_en_{row['id']}"
+                    )
+                    if new_enabled != enabled:
+                        set_mcp_server_enabled(row["id"], new_enabled)
+                        st.rerun()
+                with c3:
+                    if st.button("🗑", key=f"mcp_del_{row['id']}"):
+                        delete_mcp_server(row["id"])
+                        st.rerun()
+
+            with st.form("add_mcp_server", clear_on_submit=True):
+                st.caption("Add a server")
+                mcp_name = st.text_input("Name", placeholder="my-tools")
+                mcp_transport = st.selectbox(
+                    "Transport", options=["stdio", "streamable_http", "sse"]
+                )
+                mcp_command = st.text_input(
+                    "Command (stdio)", placeholder="python my_server.py"
+                )
+                mcp_url = st.text_input(
+                    "URL (http/sse)", placeholder="http://localhost:8000/mcp"
+                )
+                if st.form_submit_button("➕ Add server", use_container_width=True):
+                    if mcp_name.strip() and (mcp_command.strip() or mcp_url.strip()):
+                        add_mcp_server(
+                            mcp_name.strip(), mcp_transport,
+                            mcp_command.strip(), mcp_url.strip(),
+                        )
+                        st.rerun()
+                    else:
+                        st.error("Provide a name and a command or URL.")
 
         st.divider()
 

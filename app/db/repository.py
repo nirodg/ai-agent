@@ -153,3 +153,96 @@ def delete_note(note_id: int):
     with get_db() as conn:
         conn.execute("DELETE FROM notes WHERE id = ?", (note_id,))
         conn.commit()
+
+
+# ---------------------------------------------------------
+# PROJECTS (RAG knowledge bases)
+# ---------------------------------------------------------
+
+def create_project(name: str, description: str = "") -> int:
+    with get_db() as conn:
+        cur = conn.execute("""
+            INSERT INTO projects (name, description, created_at)
+            VALUES (?, ?, ?)
+        """, (name.strip(), description.strip(), datetime.now().strftime("%Y-%m-%d %H:%M")))
+        conn.commit()
+        return cur.lastrowid
+
+
+def load_projects() -> list:
+    with get_db() as conn:
+        return conn.execute("SELECT * FROM projects ORDER BY created_at DESC").fetchall()
+
+
+def get_project(project_id: int):
+    with get_db() as conn:
+        return conn.execute("SELECT * FROM projects WHERE id = ?", (project_id,)).fetchone()
+
+
+def delete_project(project_id: int):
+    with get_db() as conn:
+        conn.execute("DELETE FROM rag_documents WHERE project_id = ?", (project_id,))
+        conn.execute("DELETE FROM projects WHERE id = ?", (project_id,))
+        conn.commit()
+
+
+def add_rag_document(project_id: int, filename: str, source_type: str, chunk_count: int) -> int:
+    with get_db() as conn:
+        cur = conn.execute("""
+            INSERT INTO rag_documents (project_id, filename, source_type, chunk_count, created_at)
+            VALUES (?, ?, ?, ?, ?)
+        """, (project_id, filename, source_type, chunk_count,
+              datetime.now().strftime("%Y-%m-%d %H:%M")))
+        conn.commit()
+        return cur.lastrowid
+
+
+def load_rag_documents(project_id: int) -> list:
+    with get_db() as conn:
+        return conn.execute("""
+            SELECT * FROM rag_documents WHERE project_id = ?
+            ORDER BY created_at DESC
+        """, (project_id,)).fetchall()
+
+
+def delete_rag_document(document_id: int):
+    with get_db() as conn:
+        conn.execute("DELETE FROM rag_documents WHERE id = ?", (document_id,))
+        conn.commit()
+
+
+# ---------------------------------------------------------
+# MCP SERVERS (external tool sources)
+# ---------------------------------------------------------
+
+def add_mcp_server(name: str, transport: str, command: str = "", url: str = "") -> int:
+    with get_db() as conn:
+        cur = conn.execute("""
+            INSERT INTO mcp_servers (name, transport, command, url, enabled, created_at)
+            VALUES (?, ?, ?, ?, 1, ?)
+        """, (name.strip(), transport, command.strip(), url.strip(),
+              datetime.now().strftime("%Y-%m-%d %H:%M")))
+        conn.commit()
+        return cur.lastrowid
+
+
+def load_mcp_servers(enabled_only: bool = False) -> list:
+    with get_db() as conn:
+        query = "SELECT * FROM mcp_servers"
+        if enabled_only:
+            query += " WHERE enabled = 1"
+        query += " ORDER BY created_at DESC"
+        return conn.execute(query).fetchall()
+
+
+def set_mcp_server_enabled(server_id: int, enabled: bool):
+    with get_db() as conn:
+        conn.execute("UPDATE mcp_servers SET enabled = ? WHERE id = ?",
+                     (1 if enabled else 0, server_id))
+        conn.commit()
+
+
+def delete_mcp_server(server_id: int):
+    with get_db() as conn:
+        conn.execute("DELETE FROM mcp_servers WHERE id = ?", (server_id,))
+        conn.commit()

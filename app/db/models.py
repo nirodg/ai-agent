@@ -126,6 +126,38 @@ def init_db():
                 created_at    TEXT NOT NULL
             )
         """)
+        # ── RAG: projects (each project = isolated knowledge base) ──
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS projects (
+                id            INTEGER PRIMARY KEY AUTOINCREMENT,
+                name          TEXT NOT NULL UNIQUE,
+                description   TEXT,
+                created_at    TEXT NOT NULL
+            )
+        """)
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS rag_documents (
+                id            INTEGER PRIMARY KEY AUTOINCREMENT,
+                project_id    INTEGER NOT NULL,
+                filename      TEXT NOT NULL,
+                source_type   TEXT NOT NULL,
+                chunk_count   INTEGER DEFAULT 0,
+                created_at    TEXT NOT NULL,
+                FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+            )
+        """)
+        # ── MCP: registered external MCP servers ──
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS mcp_servers (
+                id            INTEGER PRIMARY KEY AUTOINCREMENT,
+                name          TEXT NOT NULL UNIQUE,
+                transport     TEXT NOT NULL DEFAULT 'stdio',
+                command       TEXT,
+                url           TEXT,
+                enabled       INTEGER DEFAULT 1,
+                created_at    TEXT NOT NULL
+            )
+        """)
         # Migrations — safe to run on existing DBs
         for col in ("confidence", "funding_info", "competitors", "search_depth",
                     "job_signals", "tech_stack", "intent_score"):

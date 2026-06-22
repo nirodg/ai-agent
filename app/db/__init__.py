@@ -1,11 +1,21 @@
 from .models import BACKUP_DIR, DB_PATH, get_db, init_db
 from .repository import (
+    add_mcp_server,
+    add_rag_document,
+    create_project,
     delete_email_draft,
+    delete_mcp_server,
     delete_note,
     delete_profile,
+    delete_project,
+    delete_rag_document,
+    get_project,
     load_all_profiles,
     load_drafts_for_company,
+    load_mcp_servers,
     load_notes,
+    load_projects,
+    load_rag_documents,
     load_setting,
     row_to_dict,
     save_email_draft,
@@ -13,6 +23,7 @@ from .repository import (
     save_note,
     save_profile,
     save_setting,
+    set_mcp_server_enabled,
 )
 
 __all__ = [
@@ -33,4 +44,17 @@ __all__ = [
     "save_note",
     "load_notes",
     "delete_note",
+    # Projects / RAG
+    "create_project",
+    "load_projects",
+    "get_project",
+    "delete_project",
+    "add_rag_document",
+    "load_rag_documents",
+    "delete_rag_document",
+    # MCP
+    "add_mcp_server",
+    "load_mcp_servers",
+    "set_mcp_server_enabled",
+    "delete_mcp_server",
 ]

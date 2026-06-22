@@ -125,6 +125,41 @@ Every researched company is injected into the agent's system prompt as a compres
 
 ---
 
+### 📚 Knowledge Base (RAG)
+
+Ground the agent in **your own business data** using per-project Retrieval-Augmented Generation. Each named **project** gets its own isolated [ChromaDB](https://www.trychroma.com/) vector collection, so data never leaks between projects.
+
+**Create projects** from the `📚 Knowledge Base` page, then feed each one with:
+
+- **Uploaded files** — PDF, DOCX, CSV, TXT, and Markdown are parsed, chunked, embedded, and stored locally
+- **External sources** — pull pages from **Notion** or files from **Google Drive** straight into a project
+- **Direct query** — semantically search any project's knowledge base from the UI to verify what the agent can see
+
+When a project is selected on the Research page, the agent gains a `knowledge_base_search` tool and answers queries grounded in that project's private documents **alongside** live web search — so you can run research tuned to each customer, market, or internal playbook.
+
+Embeddings use OpenAI (`text-embedding-3-small`) when an OpenAI key is configured, and automatically fall back to a **local** model (`bge-small-en-v1.5` via FastEmbed) so RAG works offline with no embeddings API.
+
+---
+
+### 🔌 MCP (Model Context Protocol)
+
+The agent both **exposes** and **consumes** tools over MCP.
+
+**Expose this agent as an MCP server** — run a standalone server so any MCP-compatible client (Claude Desktop, IDEs, other agents) can call this app's capabilities:
+
+```bash
+python mcp_server.py
+```
+
+Exposed tools:
+- `enrich_company(company_name, depth)` — full enrichment pipeline
+- `web_search(query)` — free DuckDuckGo search
+- `knowledge_base_search(project_id, question)` — query a project's RAG store
+
+**Consume external MCP servers** — register third-party MCP servers from the sidebar (`🔌 MCP Servers`) by name, transport (`stdio`, `streamable_http`, or `sse`), and command/URL. Tools from every enabled server are loaded automatically and added to the agent so it can use external capabilities on your next research run.
+
+---
+
 ### 📝 Notes & Activity Log
 
 Each profile has a timestamped notes panel for logging call outcomes, follow-up dates, and rep observations. Notes are stored in SQLite and displayed chronologically.
@@ -174,6 +209,9 @@ Key functions are decorated with `@traceable` and tagged by feature area (`step1
 | LLM | OpenRouter (default, free-tier models) + OpenAI + Perplexity + Ollama Cloud via LangChain |
 | Agent framework | LangGraph (`create_react_agent`) |
 | Web search | DuckDuckGo (`ddgs`) — free, no API key |
+| Knowledge base (RAG) | ChromaDB (per-project) + LangChain loaders; OpenAI or local FastEmbed embeddings |
+| Interoperability | Model Context Protocol (MCP) — expose via FastMCP, consume via `langchain-mcp-adapters` |
+| External connectors | Notion API, Google Drive (service account) |
 | Data storage | SQLite (local, zero config) |
 | Observability | LangSmith |
 | Export | openpyxl (Excel), csv (stdlib) |
@@ -187,19 +225,30 @@ Key functions are decorated with `@traceable` and tagged by feature area (`step1
 ```
 .
 ├── main.py                       # Streamlit entrypoint (page config, session state, page router)
+├── mcp_server.py                 # Standalone MCP server entry point (exposes agent tools)
 ├── app/
 │   ├── config.py                 # Constants, persona presets, search-depth queries, badge styles
 │   ├── schemas/
 │   │   ├── evidence.py           # FieldConfidence, FundingInfo, JobSignals, TechStack
 │   │   └── profile.py            # CompanyProfile, CompetitorProfile
 │   ├── db/
-│   │   ├── models.py             # SQLite connection + init_db()
-│   │   └── repository.py         # CRUD: profiles, settings, email drafts, notes
+│   │   ├── models.py             # SQLite connection + init_db() (profiles, projects, rag_documents, mcp_servers)
+│   │   └── repository.py         # CRUD: profiles, settings, drafts, notes, projects, RAG docs, MCP servers
 │   ├── llm/
 │   │   ├── settings.py           # Provider / model / persona / prompt resolution
-│   │   └── factory.py            # get_llm_client(), build_agent(), provider fallback
+│   │   └── factory.py            # get_llm_client(), build_agent() (+RAG/MCP tools), provider fallback
 │   ├── tools/
 │   │   └── web_search.py         # DuckDuckGo (ddgs) search tool with retry
+│   ├── rag/
+│   │   ├── store.py              # Per-project ChromaDB vector store + embeddings
+│   │   ├── ingest.py             # PDF/DOCX/CSV/TXT loaders → chunk → embed
+│   │   ├── retriever.py          # Project-scoped knowledge_base_search tool
+│   │   └── connectors/
+│   │       ├── notion.py         # Import Notion pages into a project
+│   │       └── gdrive.py         # Import Google Drive files into a project
+│   ├── mcp/
+│   │   ├── server.py             # FastMCP server exposing agent tools
+│   │   └── client.py             # Load tools from registered external MCP servers
 │   ├── agents/
 │   │   ├── enrichment_agent.py   # Multi-source research pipeline + structured extraction
 │   │   ├── scoring_agent.py      # Rule-based + LLM intent scoring
@@ -216,16 +265,18 @@ Key functions are decorated with `@traceable` and tagged by feature area (`step1
 │       ├── profile_tabs.py       # 5-tab profile view + persona follow-up
 │       ├── profiles_page.py      # Priority dashboard
 │       ├── alerts_page.py        # Re-research / trigger alerts
+│       ├── knowledge_page.py     # Knowledge Base: projects, file/connector ingest, query
 │       ├── langsmith_page.py     # LangSmith observability page
 │       ├── backup_page.py        # DB backup / restore page
 │       ├── research_page.py      # Single-chat + bulk-enrichment page
-│       └── sidebar.py            # Sidebar: nav, persona, LLM, model, history, export
+│       └── sidebar.py            # Sidebar: nav, persona, LLM, model, MCP servers, history, export
 ├── requirements.txt              # Python dependencies
 ├── setup.py                      # First-time setup script
 ├── run.sh                        # Start script (macOS/Linux)
 ├── run.bat                       # Start script (Windows)
 ├── .env                          # API keys (created by setup.py, never commit this)
 ├── enrichment_profiles.db        # SQLite database (auto-created on first run)
+├── chroma_store/                 # Per-project RAG vector store (auto-created)
 └── db_backups/                   # Local database backups (auto-created)
 ```
 
@@ -263,6 +314,11 @@ OLLAMA_BASE_URL=https://ollama.com
 LANGSMITH_TRACING=true
 LANGSMITH_API_KEY=ls__...
 LANGSMITH_PROJECT=sales-enrichment-agent
+
+# Optional — RAG embeddings & external connectors
+# OPENAI_API_KEY enables OpenAI embeddings; without it RAG uses a local model.
+NOTION_API_KEY=secret_...                       # Notion connector
+GOOGLE_APPLICATION_CREDENTIALS=/path/to/sa.json # Google Drive connector (service account)
 ```
 
 You can select provider (`OpenRouter`, `OpenAI`, `Perplexity`, or `Ollama Cloud (Free Tier)`) and model from the app sidebar under `LLM Settings` and `AI Model`.

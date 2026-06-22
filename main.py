@@ -80,6 +80,7 @@ for _key, _factory in _DEFAULTS.items():
 # ---------------------------------------------------------
 from app.ui.alerts_page    import render_trigger_alerts_page
 from app.ui.backup_page    import render_backup_page
+from app.ui.knowledge_page import render_knowledge_page
 from app.ui.langsmith_page import render_langsmith_page
 from app.ui.profiles_page  import render_priority_dashboard
 from app.ui.research_page  import render_research_page
@@ -160,6 +161,8 @@ page = st.session_state.current_page
 
 if page == "dashboard":
     render_priority_dashboard(all_dicts)
+elif page == "knowledge":
+    render_knowledge_page()
 elif page == "alerts":
     render_trigger_alerts_page(all_dicts)
 elif page == "langsmith":

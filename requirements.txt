@@ -1,6 +1,7 @@
 langchain-core>=0.3.0
 langchain-openai>=0.3.0
 langchain-ollama>=0.2.0
+langchain-community>=0.3.0
 langgraph>=0.2.0
 pydantic>=2.0.0
 ddgs>=9.0.0
@@ -9,3 +10,14 @@ python-dotenv>=1.0.0
 openpyxl>=3.1.0
 tenacity>=8.2.0
 langsmith>=0.1.0
+# RAG
+chromadb>=0.5.0
+langchain-chroma>=0.1.0
+pypdf>=4.0.0
+python-docx>=1.1.0
+fastembed>=0.3.0
+# MCP
+mcp>=1.0.0
+langchain-mcp-adapters>=0.1.0
+# External connectors (imported lazily — optional)
+notion-client>=2.2.0

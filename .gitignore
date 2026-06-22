@@ -18,6 +18,9 @@ wheels/
 *.db
 db_backups/
 
+# RAG vector store
+chroma_store/
+
 # OS
 .DS_Store
 Thumbs.db

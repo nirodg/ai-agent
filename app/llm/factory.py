@@ -62,11 +62,35 @@ def invoke_with_provider_fallback(prompt: str, temperature: float, where: str) -
     return model.invoke(prompt).content.strip()
 
 
-def build_agent(system_prompt: str, temperature: float = 0.0):
+def build_agent(system_prompt: str, temperature: float = 0.0,
+                project_id: int | None = None, include_mcp: bool = True):
+    """Build a ReAct agent.
+
+    - When ``project_id`` is set, a project-scoped RAG knowledge-base search tool
+      is added so the agent can read that project's private data.
+    - When ``include_mcp`` is True, tools from any enabled external MCP servers
+      are appended, letting the agent consume third-party capabilities.
+    """
     model = get_llm_client(temperature=temperature)
+    tools = [free_duckduckgo_search]
+
+    if project_id is not None:
+        try:
+            from app.rag.retriever import make_rag_tool
+            tools.append(make_rag_tool(project_id))
+        except Exception:
+            pass
+
+    if include_mcp:
+        try:
+            from app.mcp import load_external_mcp_tools
+            tools.extend(load_external_mcp_tools())
+        except Exception:
+            pass
+
     agent = create_react_agent(
         model=model,
-        tools=[free_duckduckgo_search],
+        tools=tools,
         prompt=system_prompt,
     )
     return agent, model

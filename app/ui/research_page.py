@@ -136,6 +136,22 @@ def render_research_page(all_profiles: list, all_dicts: list):
         help="Controls creativity for this conversation. Lower is more deterministic; higher is more exploratory.",
     )
 
+    # ── Knowledge base grounding (RAG) ──────────────────
+    from app.db import load_projects as _load_projects
+    from app.db import row_to_dict as _row_to_dict
+
+    _projects = [_row_to_dict(p) if not isinstance(p, dict) else p for p in _load_projects()]
+    _selected_project_id = None
+    if _projects:
+        _proj_labels = {"— None (web only) —": None}
+        _proj_labels.update({p["name"]: p["id"] for p in _projects})
+        _proj_choice = st.selectbox(
+            "📚 Ground answers in a project knowledge base",
+            options=list(_proj_labels.keys()),
+            help="When selected, the agent can search this project's private data (RAG) alongside the web.",
+        )
+        _selected_project_id = _proj_labels[_proj_choice]
+
     for msg in st.session_state.messages:
         with st.chat_message(msg["role"]): st.markdown(msg["content"])
 
@@ -161,6 +177,7 @@ def render_research_page(all_profiles: list, all_dicts: list):
                     agent, base_model = build_agent(
                         full_sys,
                         temperature=float(st.session_state.conversation_temperature),
+                        project_id=_selected_project_id,
                     )
                     conversation = [
                         {"role": m["role"], "content": m["content"]}
